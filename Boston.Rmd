@@ -1,0 +1,139 @@
+---
+title: "Boston"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Packages required
+library(rsample)
+library(tidyverse)
+library(stats)
+library(dplyr)
+library(caret)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+boston <- pdp::boston
+
+boston
+
+str(boston)
+```
+```{r}
+cmedv <- boston$cmedv
+
+cmedv
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+boston %>% select(cmedv)
+```
+```{r}
+glimpse(boston)
+```
+
+```{r}
+dim(boston)
+```
+```{r}
+ggplot(boston, aes(x=cmedv)) +
+  geom_histogram(aes(y=..density..),     
+                 binwidth=.5,
+                 colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666")
+```
+
+
+
+```{r}
+set.seed(123) 
+split <- initial_split(boston, strata = "cmedv", prop = 0.7)
+train <- training(split)
+test  <- testing(split)
+
+dim(train)
+dim(test)
+split
+
+```
+
+
+
+
+```{r}
+
+ggplot(train, aes(x = cmedv)) + 
+  geom_line(stat = "density", 
+            trim = TRUE) + 
+  geom_line(data = test, 
+            stat = "density", 
+            trim = TRUE, col = "red")
+```
+
+
+
+```{r}
+model1 <- lm(cmedv ~ ., data = boston)
+summary(model1)
+
+model1
+
+```
+
+```{r}
+model2 <-  glm(cmedv ~ ., data = boston, 
+               family = gaussian)
+model2
+```
+
+```{r}
+lm_caret <- train(cmedv ~ ., data = boston, 
+                  method = "lm")
+
+lm_caret
+```
+
+
+```{r}
+coefficients(model1)
+
+```
+
+```{r}
+coefficients(model2)
+```
+
+
+```{r}
+coef(lm_caret$finalModel)
+```
+
+
+```{r}
+linear_model <- lm(model1 ~ model2, data = test)
+summary(linear_model)
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+

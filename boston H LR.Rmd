@@ -1,0 +1,140 @@
+---
+title: "Boston housing - LR"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Helper packages
+library(dplyr)    # for data manipulation
+library(ggplot2)  # for awesome graphics
+
+# Modeling packages
+library(caret)    # for cross-validation, etc.
+library(rsample)  # for sampling
+
+# Model interpretability packages
+library(vip)      # variable importance
+
+install.packages("pdp")
+```
+
+```{r}
+library(MASS)
+library(ISLR)
+```
+
+## Exercises
+Using the Boston housing data set from the pdp package, where the response feature is the median value of homes within a census tract (cmedv):
+
+```{r}
+summary(Boston)
+```
+```{r}
+summary(medv)
+```
+
+```{r cars}
+head(Boston)
+```
+
+## EDA
+
+```{r pressure, echo=FALSE}
+plot(medv~., Boston)
+```
+
+```{r}
+pairs(~ medv + ptratio + black + lstat + dis + rm + crim, data = Boston, main = "Boston Data")
+```
+Pick a single feature and apply simple linear regression model.
+Interpret the feature’s coefficient
+What is the model’s performance? How does it compare to the KNN in the last module?
+
+```{r}
+# simple linear regression model
+
+fit1=lm(medv~.,data=Boston)
+summary(fit1)
+
+# Interpret the feature’s coefficient
+coef(fit1)
+
+# What is the model’s performance? 
+# How does it compare to the KNN in the last module?
+plot(medv~.,Boston)
+abline(fit1,col="blue")
+
+scale(boston)
+scale(fit1)
+```
+
+```{r}
+confint(fit1)
+```
+
+
+```{r}
+predict(fit1,data.frame(lstat=c(10,20,30)),interval="confidence")
+```
+
+
+```{r}
+data.frame(lstat=c(10,20,30))
+par(mfrow=c(2,2))
+plot(fit1)
+```
+
+```{r}
+fit2=lm(medv~lstat+age,data=Boston)
+summary(fit2)
+
+```
+
+```{r}
+fit3=lm(medv~.,Boston)
+summary(fit3)
+
+par(mfrow=c(2,2))
+plot(fit3)
+```
+```{r}
+fit4=update(fit3,~.-age-indus)
+summary(fit4)
+```
+```{r}
+fit6=lm(medv~lstat +I(lstat^2),Boston)
+summary(fit6)
+
+```
+```{r}
+attach(Boston)
+par(mfrow=c(1,1))
+plot(medv~lstat, Boston)
+points(lstat,fitted(fit6), col="red",pch=20)
+```
+```{r}
+fit7=lm(medv~poly(lstat,4))
+plot(medv~lstat)
+points(lstat,fitted(fit7),col="blue",pch=20)
+
+```
+
+```{r}
+fit5=lm(medv~lstat*age,Boston)
+summary(fit5)
+```
+
+```{r}
+fit6=lm(medv~lstat+crim+rm+dis+black+chas+nox+rad+tax+ptratio+I(lstat^2)+I(rm^2))
+summary(fit6)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(fit6)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
