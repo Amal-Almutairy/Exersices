@@ -1,0 +1,245 @@
+---
+title: "Spam LR"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Excercise 
+Using the spam data set from the kernlab package:
+
+```{r}
+# Using the spam data set from the kernlab package:
+# Loading packages:
+library(rsample)
+library(tidyverse)
+library(stats)
+library(dplyr)
+library(caret)
+library(ggplot2)
+library(lattice)
+library(kernlab)
+library(gbm)
+library(survival)
+library(splines)
+library(ROCR)
+
+data("spam")
+str(spam)
+spam
+
+receive <- spam$receive
+email <- spam$email
+
+```
+
+```{r}
+set.seed(123) 
+split_s <- initial_split(spam, strata = "type", prop = 0.7)
+train_s <- training(split_s)
+test_s  <- testing(split_s)
+
+dim(train_s)
+dim(test_s)
+split_s
+
+
+```
+
+## 1
+Pick a single feature and apply simple logistic regression model.
+Interpret the feature’s coefficient
+What is the model’s performance?
+
+
+```{r}
+# load the data using kernlab package:
+data("spam")
+str(spam)
+spam
+# make sure response variable is binary
+spam$type <- ifelse(spam$type == "spam", 1, 0)
+str(spam)
+# make sure categorical variables are factors
+spam$type = as.factor(spam$type)
+str(spam)
+
+# Pick a single feature and apply simple logistic regression model
+# Interpret the feature’s coefficient
+# What is the model’s performance?
+fit <- glm(type ~ email, family = "binomial", data = train_s)
+summary(fit)
+fit
+
+# the estimated coefficient
+tidy(fit)
+
+#  interpret the coefficients using an exp()
+exp(coef(fit))
+
+ # for odds, you can use `exp(confint(model1))`
+confint(fit)
+```
+
+## 2
+Pick another feature to add to the model:
+Before applying the module why do you think this feature will help?
+Apply a logistic regression model with the two features and compare to the simple linear model.
+Interpret the coefficients.
+
+```{r}
+fit2 <- glm(type ~ receive, family = "binomial", data = train_s)
+summary(fit2)
+
+
+# the estimated coefficient
+tidy(fit2)
+
+# interpret the coefficients using an exp()
+ exp(coef(fit2))
+ 
+ # for odds, you can use `exp(confint(model1))`
+confint(fit2)
+```
+
+## 3
+Now apply a model that includes all the predictors.
+How does this model compare to the previous two?
+```{r}
+fit3 <- glm(
+  type ~ email + receive,
+  family = "binomial", 
+  data = spam)
+
+# the estimated coefficient
+tidy(fit3)
+
+# interpret the coefficients using an exp()
+coef(fit3)
+ 
+
+```
+
+## 4
+Plot an ROC curve comparing the performance of all three models
+```{r}
+set.seed(123)
+cv_fit <- train(
+  type ~ email, 
+  data = train_s, 
+  method = "glm",
+  family = "binomial",
+  trControl = trainControl(method = "cv", number = 10)
+)
+
+cv_fit
+
+set.seed(123)
+cv_fit2 <- train(
+  type ~ receive, 
+  data = train_s, 
+  method = "glm",
+  family = "binomial",
+  trControl = trainControl(method = "cv", number = 10)
+)
+
+cv_fit2
+
+set.seed(123)
+cv_fit3 <- train(
+  type ~ email + receive,
+  data = train_s, 
+  method = "glm",
+  family = "binomial",
+  trControl = trainControl(method = "cv", number = 10)
+)
+cv_fit3
+
+# extract out of sample performance measures
+model <- summary(
+  resamples(
+    list(
+      model1 = cv_fit, 
+      model2 = cv_fit2, 
+      model3 = cv_fit3
+    )
+  )
+)$statistics$Accuracy
+
+model
+
+# predict class
+pred_class <- predict(cv_fit3, train_s)
+pred_class
+
+# Compute predicted probabilities
+m1_prob <- predict(cv_fit, train_s, type = "prob")$Yes
+m3_prob <- predict(cv_fit3, train_s, type = "prob")$Yes
+
+
+```
+
+
+```{r}
+spamPredictor <- function(spam){
+  vals = seq(0,11.1,by=0.1)
+  optimal_pos = 0
+  optimal_neg = 0
+  optimal_acc = 0
+  pos = 0
+  neg = 0
+  acc_loc = 0
+  ns_vals = double()
+  ns_sensitivity = double()
+  ns_specificity = double()
+  accuracy = double()
+  s_vals = double()
+  steps = double()
+  for(i in vals){
+    prediction <- ifelse(spam$your > i, "spam", "nonspam")
+    x <- table(prediction, spam$type)/length(spam$type)
+    ns <- x[1,1] / (x[1,1] + x[1,2])
+    ns_sens <- x[1,1] / (x[1,1] + x[2,1])
+    ns_spec <- x[2,2] / (x[1,2] + x[2,2])
+    ns_vals <- c(ns_vals, ns)
+    ns_sensitivity <-c(ns_sensitivity, ns_sens)
+    ns_specificity <-c(ns_specificity, ns_spec)
+    steps = c(steps, i)
+    if(ns > pos){
+      pos = ns
+      optimal_pos = i
+    }
+    s <- x[2,2] / (x[2,1] + x[2,2])
+    if(s > neg){
+      neg = s
+      optimal_neg = i
+    }
+    acc = (x[1,1] + x[2,2]) / sum(x)
+    if(acc > optimal_acc){
+      optimal_acc = acc
+      optimal_loc = i
+    }
+    s_vals <- c(s_vals, s)
+    accuracy <- c(accuracy,acc)
+  }
+  #old.par <- par(mfrow=c(2, 1))
+  #dev.new(width = 5, height = 4)
+  plot(steps, ns_vals, xlab = "Number of 'your' occurrences",type='l',
+       col=2, ylim = c(0,1), main = "Positive and negative predictive power", ylab="" )
+  lines(steps, s_vals, col=3)
+  lines(steps, accuracy, col=4)
+  legend(0.4,1,c("Positive predictive value", "Negative predictive value", "Accuracy"), col=c(2,3,4), lty=c(1,1), cex =0.7)
+  plot(1 - ns_specificity, ns_sensitivity, col="green", type='l', ylim = c(0,1),
+       xlab = "1 - specificity", ylab = "Sensitivity", main = "ROC")
+  points(steps, steps)
+  #lines(steps, ns_specificity, col="orange")
+  #par(old.par)
+  z = list("optimal_pos_loc" = optimal_pos, "optimal_pos_val" = pos, "optimal_neg_loc" = optimal_neg, "optimal_neg_val" = neg, "optimal_acc_loc" = optimal_loc, "optimal_acc_val" = 
+             optimal_acc)
+  return(z)
+}
+results = spamPredictor(spam)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
