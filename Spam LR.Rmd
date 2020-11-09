@@ -121,8 +121,7 @@ coef(fit3)
 
 ```
 
-## 4
-Plot an ROC curve comparing the performance of all three models
+
 ```{r}
 set.seed(123)
 cv_fit <- train(
@@ -156,6 +155,11 @@ cv_fit3 <- train(
 )
 cv_fit3
 
+
+```
+## Exercise 4 
+Plot an ROC curve comparing the performance of all three models
+```{r}
 # extract out of sample performance measures
 model <- summary(
   resamples(
@@ -169,18 +173,15 @@ model <- summary(
 
 model
 
-# predict class
-pred_class <- predict(cv_fit3, train_s)
-pred_class
-
-# Compute predicted probabilities
-m1_prob <- predict(cv_fit, train_s, type = "prob")$Yes
-m3_prob <- predict(cv_fit3, train_s, type = "prob")$Yes
-
-
 ```
 
-
+## Plot ROC
+- Plot an ROC curve comparing the performance of all three models
+- Compute and interpret the following performance metrics:
+No information rate
+accuracy rate
+sensitivity
+specificity
 ```{r}
 spamPredictor <- function(spam){
   vals = seq(0,11.1,by=0.1)

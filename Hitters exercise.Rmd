@@ -1,0 +1,151 @@
+---
+title: "Hitters exercises"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+packages <- c('ISLR', 'tidyverse', 'ggthemes', 'caret', 'doMC', 'gbm', 'knitr')
+sapply(packages, require, character.only = TRUE)
+data("Hitters")
+
+Hitters %>%
+    filter(!is.na(Salary)) %>%
+    mutate(logSalary = log(Salary)) %>%
+    select(-Salary) -> Hitters
+```
+
+## Using the Hitters dataset from the ISLR package (data(Hitters, package = "ISLR")):
+
+```{r}
+ISLR::Hitters
+data(Hitters, package = "ISLR")
+
+# Omit missing value:
+Hitters = na.omit(Hitters)
+```
+## 
+```{r}
+# split data
+set.seed(123)
+h_split <- initial_split(Hitters, prop = 0.7)
+h_train <- training(h_split)
+h_test  <- testing(h_split)
+
+X = model.matrix(Salary~., h_train)[,-1]
+x_test = model.matrix(Salary~., h_test)[,-1]
+
+y_train = h_train %>%
+  select(Salary) %>%
+  unlist() %>%
+  as.numeric()
+
+y_test = h_test %>%
+  select(Salary) %>%
+  unlist() %>%
+  as.numeric()
+
+```
+
+
+## 1
+Apply a ridge model with glmnet with Salary being the response variable.
+What is the minimum MSE?
+What is the minimum MSE within 1 standard error?
+What are the lambda values for these MSEs?
+
+```{r}
+# transform y with log transformation
+Y <- log(h_train$Salary)
+
+ridge <- glmnet(
+ x = X,
+ y = Y,
+ alpha = 0
+)
+plot(ridge, xvar = "lambda")
+###
+ridge <- cv.glmnet(
+ x = X,
+ y = Y,
+ alpha = 0
+)
+plot(ridge)
+# What is the minimum MSE?
+min(ridge$cvm)
+# What is the minimum MSE within 1 standard error?
+ridge$lambda.1se
+ridge$cvm[ridge$lambda == ridge$lambda.1se]
+# What are the lambda values for these MSEs?
+ridge$lambda.min
+
+```
+### 2
+Apply a lasso model with glmnet.
+What is the minimum MSE?
+What is the minimum MSE within 1 standard error?
+What are the lambda values for these MSEs?
+
+```{r pressure, echo=FALSE}
+lasso <- glmnet(
+ x = X,
+ y = Y,
+ alpha = 1
+)
+plot(lasso, xvar = "lambda")
+###
+lasso <- cv.glmnet(
+ x = X,
+ y = Y,
+ alpha = 1
+)
+plot(lasso)
+# What is the minimum MSE?
+min(lasso$cvm)
+# What is the minimum MSE within 1 standard error?
+lasso$cvm[lasso$lambda == lasso$lambda.1se]
+# What are the lambda values for these MSEs?
+lasso$lambda.min
+
+```
+
+## 3
+Perform a grid search across alpha parameter values ranging between 0–1.
+What is the optimal alpha and lambda values?
+What is the MSE and RMSE for this optimal model?
+How does it compare to your previous models?
+
+```{r}
+# Perform a grid search across alpha parameter values ranging between 0–1.
+grid_search <- expand.grid(
+  alpha = seq(0,1, by = .25),
+  lambda = c(0.1, 10,  100, 1000, 10000)
+)
+grid_search
+
+# What is the optimal alpha and lambda values?
+# What is the MSE and RMSE for this optimal model?
+
+# How does it compare to your previous models?
+pred <- predict(cv.glmnet, X)
+
+# RMSE
+RMSE(exp(pred), exp(Y))
+```
+
+## 4
+Plot the top 10 most influential features. Do these features have positive or negative impacts on your response variable?
+
+
+```{r}
+ggplot(cv_glmnet, num_features = 10, geom = "point")
+```
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

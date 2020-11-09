@@ -16,8 +16,12 @@ library(ggplot2)  # for awesome graphics
 library(caret)    # for cross-validation, etc.
 library(rsample)  # for sampling
 
-# Model interpretability packages
-library(vip)      # variable importance
+library(caret)
+library(mlbench)
+
+
+data(BostonHousing)
+head(BostonHousing)
 
 install.packages("pdp")
 ```
@@ -25,56 +29,130 @@ install.packages("pdp")
 ```{r}
 library(MASS)
 library(ISLR)
+
 ```
 
 ## Exercises
 Using the Boston housing data set from the pdp package, where the response feature is the median value of homes within a census tract (cmedv):
 
 ```{r}
-summary(Boston)
+head(BostonHousing)
+summary(BostonHousing)
+str(BostonHousing)
 ```
-```{r}
-summary(medv)
-```
-
-```{r cars}
-head(Boston)
-```
-
-## EDA
-
-```{r pressure, echo=FALSE}
-plot(medv~., Boston)
-```
-
-```{r}
-pairs(~ medv + ptratio + black + lstat + dis + rm + crim, data = Boston, main = "Boston Data")
-```
+# 1
 Pick a single feature and apply simple linear regression model.
 Interpret the feature’s coefficient
 What is the model’s performance? How does it compare to the KNN in the last module?
 
+```{r pressure, echo=FALSE}
+# EDA
+
+dim(BostonHousing)
+
+#SLR
+b_model <- lm(indus ~ crime, data = BostonHousing)
+summary(b_model)
+
+# RMSE
+sigma(b_model)
+
+# MSE
+sigma(b_model)^2
+
+
+```
+## 2
+Pick another feature to add to the model.
+Before applying the module why do you think this feature will help?
+
+Apply a linear regression model with the two features and compare to the simple linear model.
+Interpret the coefficients.
 ```{r}
-# simple linear regression model
+# EDA
 
-fit1=lm(medv~.,data=Boston)
-summary(fit1)
+dim(BostonHousing)
 
-# Interpret the feature’s coefficient
-coef(fit1)
+#SLR
+b_model2 <- lm(tax ~ medv, data = BostonHousing)
+summary(b_model2)
 
-# What is the model’s performance? 
-# How does it compare to the KNN in the last module?
-plot(medv~.,Boston)
-abline(fit1,col="blue")
+# RMSE
+sigma(b_model2)
 
-scale(boston)
-scale(fit1)
+# MSE
+sigma(b_model2)^2
+
+
+# check missing value
+sum(is.na(BostonHousing))
+
+
 ```
 
+## 3
+Now apply a model that includes all the predictors.
+How does this model compare to the previous two?
+Can you identify any model concerns?
+
 ```{r}
-confint(fit1)
+#SLR
+b_model3 <- lm(tax + indus ~ medv, data = BostonHousing)
+summary(b_model3)
+b_model3
+
+
+# check missing value
+sum(is.na(BostonHousing))
+
+# To achieve reproducible model; set the random seed number
+set.seed(100)
+# Performs stratified random split of the data set
+TrainingIndex <- createDataPartition(BostonHousing$medv, p=0.8, list = FALSE)
+TrainingSet <- BostonHousing[TrainingIndex,] # Training Set
+TestingSet <- BostonHousing[-TrainingIndex,] # Test Set
+
+dim(TrainingSet)
+dim(TestingSet)
+TrainingIndex
+
+# Build Training model
+Model <- train(medv ~ ., data = TrainingSet,
+               method = "lm",
+               na.action = na.omit,
+               preProcess=c("scale","center"),
+               trControl= trainControl(method="none")
+)
+Model
+# Apply model for prediction
+Model.training <-predict(Model, TrainingSet) # Apply model to make prediction on Training set
+Model.testing <-predict(Model, TestingSet) # Apply model to make prediction on Testing set
+# Model performance
+# Scatter plot of Training set
+plot(TrainingSet$medv,Model.training, col = "blue" )
+plot(TestingSet$medv,Model.testing, col = "blue" )
+
+Model.training <- predict(Model, Trainingset)
+Model.testing <- predict(Model, Trainingset)
+Model.training
+Model.testing
 ```
+
+## 5
+Apply a principal component regression model.
+Perform a grid search over several components.
+Identify and explain the performance of the optimal model.
+```{r}
+
+```
+
+## 6
+Now apply a partial least square model.
+Perform a grid search over several components.
+Identify and explain the performance of the optimal model.
+Python challenge: Repeat the above exercises but using Python and Scikit Learn. Recall that Scikit Learn provides the boston housing data set.
+
+
 
 
 ```{r}
