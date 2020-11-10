@@ -1,0 +1,120 @@
+---
+title: 'mars E #7'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+list_of_pkgs <- c(
+  "AmesHousing",   # provides data we'll use
+  "dslabs",        # provides mnist data
+  "tidyverse",     # data munging & visualization
+  "reshape2",      # data transformation for one example
+  "extracat",      # visualizing missing data (one example)
+  "factoextra",    # clustering & PCA visualizations
+  "here",          # coordinating paths
+  "rsample",       # sampling procedures
+  "modeldata",     # more data
+  "recipes",       # feature engineering procedures
+  "caret",         # meta modeling package,
+  "h2o",           # meta modeling, model stacking, & auto ML
+  "glmnet",        # regularized regression
+  "earth",         # multivariate adaptive regression splines
+  "ranger",        # fast random forest
+  "gbm",           # gradient boosting machines
+  "xgboost",       # extreme gradient boosting
+  "broom",         # provides model result clean up
+  "vip",           # model interpretation
+  "pdp",           # model interpretation
+  "plotROC",       # plotting ROC curve
+  "rprojroot"      # coordinating paths
+)
+# Helper packages
+library(dplyr)     # for data wrangling
+library(ggplot2)   # for awesome plotting
+
+# Modeling packages
+library(earth)     # for fitting MARS models
+library(caret)     # for automating the tuning process
+
+# Model interpretability packages
+library(vip)       # for variable importance
+library(pdp)       # for variable relationships
+
+(data(Hitters, package = "ISLR"))
+
+new_pkgs <- list_of_pkgs[!(list_of_pkgs %in% installed.packages()[,"Package"])]
+if (length(new_pkgs)) install.packages(new_pkgs)
+```
+
+## 1- Apply a MARS model with all features.
+
+```{r}
+# Apply a MARS model with all features.
+
+mars_m <- earth(
+  Salary ~ .,  
+  data = h_train   
+)
+# Print model summary
+print(mars_m)
+```
+
+## 2- How does the model performance compare to your previous models?
+
+```{r pressure, echo=FALSE}
+hyper_grid <- expand.grid(
+  nprune = seq(2, 50, length.out = 10) %>% floor(),
+  degree = 1:3
+)
+
+# perform resampling
+
+
+model <- train(
+  Salary ~ ., 
+  data = h_train, 
+  trControl = trainControl(method = "cv", number = 10),
+  method = "earth", #<<
+  tuneGrid = hyper_grid,
+  metric = "RMSE")
+  
+  
+
+
+model$bestTune
+##    nprune degree
+## 23     12      3
+ggplot(model)
+
+
+```
+
+## 3- How many of the features are influential? Which 10 features are considered most influential?
+```{r}
+importance <- varImp(model, scale=FALSE)
+print(importance)
+plot(importance)
+
+p1 <- vip(model, num_features = 10, geom = "point", value = "gcv") + ggtitle("GCV")
+plot(p1)
+```
+
+## 4- Does your model include hinge functions? If so, explain their coefficient and plot their impact on the predicted response variable.
+```{r}
+summary(mars_m) %>% .$coefficients %>% head(10)
+
+plot(mars_m, which = 1)
+```
+
+
+## 5- Does your model include interactions? If so, pick the interaction effect that is most influential and explain the coefficient.
+```{r}
+model$finalModel %>%
+  coef() %>%  
+  broom::tidy() %>%  
+  filter(stringr::str_detect(names, "\\*"))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
