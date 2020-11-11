@@ -1,0 +1,147 @@
+---
+title: 'Knn E #8'
+output: html_document
+---
+
+```{r knn-pkgs, message=FALSE}
+# Helper packages
+library(dplyr)      # for data wrangling
+library(ggplot2)    # for awesome graphics
+library(rsample)    # for creating validation splits
+library(recipes)    # for feature engineering
+
+# Modeling packages
+library(caret)       # for fitting KNN models
+library(ISLR)
+library(class)
+library(FNN)
+
+library(rpart)
+library(rpart.plot)
+```
+
+## Exercises
+Using the `ISLR::Default` dataset where the default variable is the response variable:
+```{r}
+# ISLR::Default dataset
+default <- ISLR::Default
+
+head(default)  
+dim(default)   
+summary(default)
+income <- default$income
+student <- default$student
+balance <- default$balance
+default1 <- default$default
+```
+
+
+```{r}
+#
+def.subset <- default[c('default','student','balance','income')]
+head(def.subset)
+
+# creating a normalize function
+normalize <- function(x) {
+return ((x - min(x)) / (max(x) - min(x))) } 
+
+# create ls
+Def.subset.n<- as.data.frame(lapply(def.subset[1:1], normalize))
+
+set.seed(42)
+Default$student = as.numeric(Default$student) - 1
+def_d = sample(1:nrow(Default), size=nrow(gc.subset.n)*0.7,replace = FALSE)
+default_train = Default[default_index, ]
+default_test = Default[-default_index, ]
+
+
+# training data
+X_train = default_train[, -1]
+y_train = default_train$default
+
+# testing data
+X_test = default_test[, -1]
+y_test = default_test$default
+```
+
+
+# 1- Apply a KNN model with all features. 
+# Use a grid search to assess values of k ranging from 2-200 that seeks to optimize the “ROC” metric.
+```{r}
+# Create a hyperparameter grid search
+hyper_grid <- expand.grid(k = seq(2, 200, by = 2))
+
+# Execute grid search
+knn_default <- train(
+ default ~.,
+ data = default,
+  method = "knn",
+  tuneGrid = hyper_grid,
+  preProc = c("center", "scale"),
+  trControl = cv)
+
+```
+# 2- Plot the grid search performance.
+```{r}
+ggplot(knn_default)
+```
+
+# 3- What value for K optimizes model performance? What does this tell you about your data?
+```{r}
+two_v <- default_train[1:2, c("balance", "income")]
+
+#Calculating the euclidean distance
+dist(two_v, method = "euclidean")
+-
+dist(two_v, method = "manhattan")
+
+blueprint <- recipe(default ~ ., data = default) %>%
+  step_nzv(all_nominal()) %>%
+  step_integer(contains("Satisfaction")) %>%
+  step_integer(WorkLifeBalance) %>%
+  step_integer(JobInvolvement) %>%
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE) %>%
+  step_center(all_numeric(), -all_outcomes()) %>%
+  step_scale(all_numeric(), -all_outcomes())
+
+cv <- trainControl(
+  method = "repeatedcv", 
+  number = 10, 
+  repeats = 5,
+  classProbs = TRUE,                 
+  summaryFunction = twoClassSummary
+)
+
+
+nzv <- nearZeroVar(default_train)
+index <- setdiff(1:ncol(default_train), nzv)
+default_train <- default_train[, index]
+```
+```{r}
+# the sqrt of number of observation 
+head(default)
+dim(default)
+Summarise(default)
+sqrt(1000)
+k=sqrt(student)
+
+```
+
+# 4- Plot the ROC curve for the optimal model.
+Which 10 features are considered most influential? Are these the same features that have been influential in previous models?
+Now perform questions 1-5 for the built in iris data where species is the response variable.
+Python challenge: Save the ISLR::Default data from R to a CSV file. Import this data into a Python session. Now Repeat the above exercises but using Python and Scikit Learn.
+
+```{r}
+   
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

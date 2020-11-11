@@ -123,7 +123,7 @@ coef(lm_caret$finalModel)
 
 
 ```{r}
-linear_model <- lm(model1 ~ model2, data = test)
+linear_model <- lm(formula = cmedv ~ ., data = boston)
 summary(linear_model)
 
 ```

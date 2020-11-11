@@ -9,8 +9,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-packages <- c('ISLR', 'tidyverse', 'ggthemes', 'caret', 'doMC', 'gbm', 'knitr')
-sapply(packages, require, character.only = TRUE)
+# Packages required
+library(rsample)
+library(tidyverse)
+library(stats)
+library(dplyr)
+library(caret)
+library(glmnet)
+# Helper packages
+library(ggplot2)  # for awesome graphics
+
+
 data("Hitters")
 
 Hitters %>%
@@ -28,7 +37,10 @@ data(Hitters, package = "ISLR")
 # Omit missing value:
 Hitters = na.omit(Hitters)
 ```
-## 
+
+## EDA
+
+
 ```{r}
 # split data
 set.seed(123)
@@ -127,9 +139,28 @@ grid_search <- expand.grid(
 )
 grid_search
 
+trControl=trainControl(method=“cv”, number=10)
+
+# preform rsampling
+set.seed(123)
+cv_glmnet <- train(
+  x = X,
+  y = Y,
+  method = "glmnet",
+  preProc = c("zv", "center", "scale"),
+  trControl + trainControl(method = "cv", number = 10,
+                           tunelength = 10))
+
 # What is the optimal alpha and lambda values?
 # What is the MSE and RMSE for this optimal model?
+cv_glmnet$results %>% 
+  filter(
+    alpha == cv_glmnet$bestTune$alpha,
+    lambda == cv_glmnet$bestTune$lambda
+  )
+```
 
+```{r}
 # How does it compare to your previous models?
 pred <- predict(cv.glmnet, X)
 
